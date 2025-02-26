@@ -9,34 +9,21 @@ on:
       - main
 
 jobs:
-  nuclei_scan:
+  scan:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Cache Nuclei Templates
-        uses: actions/cache@v4
+      - name: Nuclei - Fast Vulnerability Scan
+        uses: projectdiscovery/nuclei-action@v1
         with:
-          path: ~/.nuclei-templates
-          key: ${{ runner.os }}-nuclei-templates
-
-      - name: Install Nuclei (if not cached)
-        run: |
-          if ! command -v nuclei &> /dev/null; then
-            curl -sL https://github.com/projectdiscovery/nuclei/releases/latest/download/nuclei-linux-amd64 -o /usr/local/bin/nuclei
-            chmod +x /usr/local/bin/nuclei
-          fi
-          nuclei -update-templates -silent
-
-      - name: Nuclei - Parallel Vulnerability Scan
-        run: |
-          mkdir -p results
-          cat domains.txt | nuclei -severity critical,high,medium -concurrency 20 -rate-limit 100 -json -o results/nuclei-results.json
+          urls: domains.txt
+          flags: "-severity critical,high,medium -c 50 -rate-limit 100 -timeout 5"
 
       - name: Upload Nuclei Report
         uses: actions/upload-artifact@v4
         with:
           name: nuclei-scan-results
-          path: results/nuclei-results.json
+          path: nuclei-report.json
